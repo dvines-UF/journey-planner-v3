@@ -76,51 +76,13 @@ main {
   animation: scaleUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* Discovery Mode: Floating Horizontal Rail */
+/* Discovery Mode: Subtle visual indicator, sidebar stays in place */
 .timeline-discovery-mode {
-  position: fixed !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  height: 240px !important;
-  background: linear-gradient(to top, rgba(15, 23, 42, 0.9), transparent) !important;
-  backdrop-filter: blur(8px);
-  z-index: 50;
-  display: flex !important;
-  flex-direction: row !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  padding: 20px !important;
-  gap: 16px !important;
-  scrollbar-width: none;
+  border-right-color: rgba(59, 130, 246, 0.3) !important;
 }
 
-.timeline-discovery-mode::-webkit-scrollbar {
-  display: none;
-}
-
-.timeline-discovery-mode > div {
-  flex: 0 0 280px !important;
-  height: 180px !important;
-  margin: 0 !important;
-  transform: scale(0.9);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.timeline-discovery-mode > div:hover {
-  transform: scale(1);
-}
-
-/* Hide non-essential info in Discovery mode to save space */
-.timeline-discovery-mode .activity-list {
-  display: none !important;
-}
-
-.timeline-discovery-mode .timeline-card-header {
-  height: 100% !important;
-  border-bottom: none !important;
-}
-
-.timeline-discovery-mode .timeline-summary {
-  display: none !important;
+@media (prefers-color-scheme: dark) {
+  .timeline-discovery-mode {
+    border-right-color: rgba(59, 130, 246, 0.2) !important;
+  }
 }

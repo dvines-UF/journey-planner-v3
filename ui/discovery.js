@@ -23,7 +23,8 @@ class DiscoveryUI {
 
   bindEvents() {
     eventBus.on('VIEW_CHANGED', (payload) => {
-      if (payload.view === 'map') {
+      const navTarget = payload.navView || payload.view;
+      if (navTarget === 'map') {
         this.ensureContainer();
         this.container.classList.remove('translate-x-full');
       } else if (this.container) {

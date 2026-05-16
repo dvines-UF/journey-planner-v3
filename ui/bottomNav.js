@@ -15,7 +15,7 @@ class BottomNav {
     this.desktopButtons = this.desktopToggle ? Array.from(this.desktopToggle.querySelectorAll('button')) : [];
     
     this.bindEvents();
-    eventBus.on('VIEW_CHANGED', (payload) => this.updateActiveState(payload.view));
+    eventBus.on('VIEW_CHANGED', (payload) => this.updateActiveState(payload.navView || payload.view));
   }
 
   bindEvents() {

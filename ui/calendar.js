@@ -254,8 +254,9 @@ class CalendarView {
           });
           closeModal();
           
-          // Switch to Plan view to show the result
-          eventBus.emit('NAVIGATE_TO', { view: 'plan' });
+          // Stay on Calendar so user can add more city segments
+          // Day cards are visible on the left (UI invariant)
+          this.render();
         }
       });
     } catch (e) {

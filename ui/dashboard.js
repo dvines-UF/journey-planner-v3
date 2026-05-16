@@ -24,7 +24,11 @@ class DashboardView {
 
   bindEvents() {
     if (this.btnNewTrip) {
-      this.btnNewTrip.onclick = () => journeyState.loadEmptyJourney();
+      this.btnNewTrip.onclick = () => {
+        journeyState.loadEmptyJourney();
+        // Auto-navigate to Calendar so user can start picking dates immediately
+        eventBus.emit('NAVIGATE_TO', { view: 'calendar' });
+      };
     }
     if (this.btnHome) {
       this.btnHome.onclick = () => this.open();

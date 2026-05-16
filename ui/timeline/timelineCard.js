@@ -17,8 +17,8 @@ export class TimelineCard {
     dayCard.draggable = true;
     dayCard.dataset.index = index;
     dayCard.dataset.id = day.id;
-    dayCard.dataset.lat = day.city.lat;
-    dayCard.dataset.lng = day.city.lng;
+    dayCard.dataset.lat = day.city?.lat || 0;
+    dayCard.dataset.lng = day.city?.lng || 0;
 
     // Attach Drag Events
     dayCard.addEventListener('dragstart', (e) => handlers.onDragStart(e, index, dayCard));
@@ -59,11 +59,11 @@ export class TimelineCard {
     const info = document.createElement('div');
     const h3 = document.createElement('h3');
     h3.className = 'text-xl font-black text-white tracking-tight drop-shadow-md';
-    h3.textContent = day.city.name;
+    h3.textContent = day.city?.name || 'Unknown City';
     
     const p = document.createElement('p');
     p.className = 'text-[10px] font-bold text-blue-200 drop-shadow-md uppercase tracking-wider';
-    p.textContent = formatDatePretty(day.date);
+    p.textContent = day.date ? formatDatePretty(day.date) : 'No Date';
     
     info.appendChild(h3);
     info.appendChild(p);
@@ -75,7 +75,9 @@ export class TimelineCard {
     focusBtn.textContent = 'View Map';
     focusBtn.onclick = (e) => {
       e.stopPropagation();
-      journeyState.focusCity(day.city.lat, day.city.lng);
+      if (day.city) {
+        journeyState.focusCity(day.city.lat, day.city.lng);
+      }
       if (document.getElementById('btn-view-map')) document.getElementById('btn-view-map').click();
     };
     
@@ -127,8 +129,8 @@ export class TimelineCard {
         e.stopPropagation();
         eventBus.emit('OPEN_HOTEL_PICKER', { 
           dayId: day.id, 
-          city: day.city.name, 
-          coords: { lat: day.city.lat, lng: day.city.lng } 
+          city: day.city?.name || 'Unknown', 
+          coords: { lat: day.city?.lat || 0, lng: day.city?.lng || 0 } 
         });
       };
     }

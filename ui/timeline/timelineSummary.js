@@ -1,4 +1,5 @@
 import { calculateDaysDuration, parseDate } from '../../core/utils.js';
+import { journeyState } from '../../core/journeyState.js';
 
 /**
  * Renders the top overview header for the timeline
@@ -24,7 +25,7 @@ export class TimelineSummary {
       <div class="absolute -left-10 -bottom-10 w-32 h-32 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
       <div class="relative z-10">
         <h2 class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1.5 text-glow">Journey Status</h2>
-        <h1 class="text-3xl font-black mb-4 tracking-tight drop-shadow-sm text-glow">${journey.title || 'My Adventure'}</h1>
+        <h1 id="journey-title-editable" class="text-3xl font-black mb-4 tracking-tight drop-shadow-sm text-glow cursor-pointer hover:text-blue-200 transition-colors" title="Click to rename"></h1>
         <div class="flex flex-wrap gap-4 text-sm font-semibold text-slate-200 mb-5">
           <div class="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm border border-white/10 shadow-inner">
              <svg class="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> 
@@ -43,6 +44,40 @@ export class TimelineSummary {
         <p class="text-xs text-blue-200 font-bold tracking-wide">${countdownText}</p>
       </div>
     `;
+
+    // Editable title: set via textContent (XSS-safe), click to edit
+    const titleEl = overview.querySelector('#journey-title-editable');
+    titleEl.textContent = journey.title || 'My Adventure';
+
+    titleEl.onclick = () => {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = journey.title || '';
+      input.className = 'text-3xl font-black bg-transparent border-b-2 border-blue-400 outline-none text-white w-full tracking-tight';
+      input.placeholder = 'Name your journey...';
+      
+      const commitRename = () => {
+        const newTitle = input.value.trim().substring(0, 80) || 'My Adventure';
+        journey.title = newTitle;
+        journeyState.save();
+        // Update the header bar title too
+        const headerTitle = document.getElementById('journey-title');
+        if (headerTitle) headerTitle.textContent = newTitle;
+      };
+
+      input.onblur = commitRename;
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        }
+      };
+      
+      titleEl.replaceWith(input);
+      input.focus();
+      input.select();
+    };
+
     return overview;
   }
 }

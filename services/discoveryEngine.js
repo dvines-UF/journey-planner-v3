@@ -22,10 +22,14 @@ class DiscoveryEngine {
   async runDiscovery(category, coords, city, cityCoords, isNomadMode = false) {
     try {
       // 1. Get Keywords
-      const keywords = await vibeEngine.generateDiscoveryStrategy(category, coords, city, isNomadMode);
+      let keywords = await vibeEngine.generateDiscoveryStrategy(category, coords, city, isNomadMode);
+      if (!Array.isArray(keywords)) {
+        console.warn("DiscoveryEngine: Received invalid keywords array from AI. Falling back to category.");
+        keywords = [category];
+      }
       
       // 2. Find Real Places
-      const rawPlaces = await this.findRealPlaces(keywords, cityCoords, isNomadMode);
+      const rawPlaces = await this.findRealPlaces(keywords, cityCoords, city, isNomadMode);
       
       // 3. Enrich with AI
       const enriched = await vibeEngine.enrichDiscoveryResults(rawPlaces, category, city);
@@ -52,14 +56,14 @@ class DiscoveryEngine {
   /**
    * Stage 2: Search Google for REAL operational places
    */
-  async findRealPlaces(keywords, cityCoords, isNomadMode = false) {
+  async findRealPlaces(keywords, cityCoords, cityName, isNomadMode = false) {
     await this.init();
     
     const results = [];
     const searchPromises = keywords.slice(0, 3).map(keyword => {
       return new Promise((resolve) => {
         const request = {
-          query: keyword,
+          query: `${keyword} in ${cityName}`,
           locationBias: { radius: 10000, center: cityCoords },
           fields: ['name', 'geometry', 'place_id', 'business_status', 'opening_hours', 'rating', 'photos', 'formatted_address', 'types', 'user_ratings_total']
         };

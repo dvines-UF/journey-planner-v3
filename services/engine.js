@@ -10,7 +10,7 @@ class VibeEngine {
     
     if (GEMINI_API_KEY) {
       this.ai = new GoogleGenerativeAI(GEMINI_API_KEY);
-      this.model = this.ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+      this.model = this.ai.getGenerativeModel({ model: "gemini-1.5-flash" });
     }
   }
 
@@ -34,15 +34,18 @@ class VibeEngine {
    */
   parseAIResponse(text, fallbackValue) {
     try {
-      const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      const firstBrace = cleanText.indexOf('[');
-      const lastBrace = cleanText.lastIndexOf(']');
-      if (firstBrace !== -1 && lastBrace !== -1) {
-        return JSON.parse(cleanText.substring(firstBrace, lastBrace + 1));
+      // More aggressive cleanup: remove markdown and everything outside the first [ and last ]
+      let cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const firstBracket = cleanText.indexOf('[');
+      const lastBracket = cleanText.lastIndexOf(']');
+      
+      if (firstBracket !== -1 && lastBracket !== -1) {
+        cleanText = cleanText.substring(firstBracket, lastBracket + 1);
       }
+      
       return JSON.parse(cleanText);
     } catch (e) {
-      console.warn("AI JSON Parse Error:", e);
+      console.warn("VibeEngine: AI JSON Parse Error. Raw Text:", text, e);
       return fallbackValue;
     }
   }
@@ -72,10 +75,10 @@ Adhere strictly to this JSON format:
 Return ONLY valid JSON array without any markdown formatting or backticks.`;
 
     try {
-      // Pre-flight check: generous 15-second timeout via Promise.race
+      // Increased timeout to 15s for stability
       let timeoutId;
       const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 5000);
+        timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 15000);
       });
 
       const aiResponse = await Promise.race([
@@ -124,12 +127,20 @@ Return ONLY valid JSON array without any markdown formatting or backticks.`;
     // Find the day with this city
     const day = journeyState.journey.days.find(d => d.city.name === cityName);
     if (day) {
-      // Pre-flight validation on the generated types to ensure UI doesn't break
       const validTypes = ['dining', 'sight', 'trail', 'wine'];
-      day.picks = picks.map(p => ({
+      const newPicks = picks.map(p => ({
          ...p,
-         type: validTypes.includes(p.type) ? p.type : 'sight'
+         type: validTypes.includes(p.type) ? p.type : 'sight',
+         isAIGenerated: true
       }));
+      
+      // ADDITIVE: Only add picks that don't already exist by name
+      const existingNames = new Set(day.picks.map(p => p.name.toLowerCase()));
+      newPicks.forEach(p => {
+        if (!existingNames.has(p.name.toLowerCase())) {
+          day.picks.push(p);
+        }
+      });
       
       journeyState.journey.lastModified = Date.now();
       
@@ -173,8 +184,7 @@ Return ONLY a JSON array of strings in the same order as input. No markdown.`;
 
     try {
       const result = await this.model.generateContent(prompt);
-      const text = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-      const descriptions = JSON.parse(text);
+      const descriptions = this.parseAIResponse(result.response.text(), []);
       
       return places.map((p, i) => ({
         ...p,

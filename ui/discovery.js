@@ -182,9 +182,15 @@ class DiscoveryUI {
 
     try {
       const journey = journeyState.journey;
-      if (!journey || journey.days.length === 0) return;
+      if (!journey || journey.days.length === 0) {
+        status.textContent = 'No city selected';
+        return;
+      }
 
-      const city = journey.days[0].city;
+      // Use the focused day, or fall back to the first day
+      const focusedDay = journey.days.find(d => d.id === journeyState.focusedDayId) || journey.days[0];
+      const city = focusedDay.city;
+      
       const results = await discoveryEngine.runDiscovery(
         this.activeCategory, 
         this.radarCoords, 

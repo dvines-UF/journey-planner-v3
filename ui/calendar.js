@@ -134,7 +134,7 @@ class CalendarView {
         badge.textContent = isPlanned.city.name;
         cell.appendChild(badge);
         
-        cell.onclick = () => this.scrollToDay(dateStr);
+        cell.onclick = () => this.openReassignModal(isPlanned, dateStr);
       } else {
         const plus = document.createElement('div');
         plus.className = 'mt-auto self-center opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 dark:text-slate-600';
@@ -260,6 +260,89 @@ class CalendarView {
       });
     } catch (e) {
       console.error("Calendar Places Error", e);
+    }
+  }
+
+  /**
+   * Reassign or delete a planned day
+   */
+  async openReassignModal(day, dateStr) {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in';
+    
+    const panel = document.createElement('div');
+    panel.className = 'bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20';
+    
+    const h3 = document.createElement('h3');
+    h3.className = 'text-2xl font-black text-slate-800 dark:text-white mb-1';
+    h3.textContent = formatDatePretty(dateStr, { weekday: 'long', month: 'short', day: 'numeric' });
+    
+    const sub = document.createElement('p');
+    sub.className = 'text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium';
+    sub.textContent = `Currently assigned to ${day.city.name}`;
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Reassign to a different city...';
+    input.className = 'w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-blue-500 outline-none text-lg font-bold dark:text-white transition-all mb-4';
+    
+    const btnRow = document.createElement('div');
+    btnRow.className = 'flex justify-between items-center gap-3';
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'px-5 py-3 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-xl transition-colors';
+    deleteBtn.textContent = 'Remove Day';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'px-5 py-3 text-sm font-bold text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors';
+    cancelBtn.textContent = 'Cancel';
+    
+    btnRow.appendChild(deleteBtn);
+    btnRow.appendChild(cancelBtn);
+    
+    panel.appendChild(h3);
+    panel.appendChild(sub);
+    panel.appendChild(input);
+    panel.appendChild(btnRow);
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+
+    const closeModal = () => {
+      if (document.body.contains(overlay)) document.body.removeChild(overlay);
+    };
+
+    overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
+    cancelBtn.onclick = closeModal;
+
+    deleteBtn.onclick = () => {
+      journeyState.removeDay(day.id);
+      closeModal();
+      this.render();
+    };
+
+    setTimeout(() => input.focus(), 100);
+
+    try {
+      await loadGoogleMapsScript();
+      const autocomplete = new window.google.maps.places.Autocomplete(input, {
+        fields: ['geometry', 'name'],
+        types: ['locality', 'airport']
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.geometry) {
+          journeyState.reassignDay(day.id, {
+            name: place.name,
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng()
+          });
+          closeModal();
+          this.render();
+        }
+      });
+    } catch (e) {
+      console.error("Reassign Places Error", e);
     }
   }
 }

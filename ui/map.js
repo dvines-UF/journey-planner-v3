@@ -271,7 +271,7 @@ class JourneyMap {
         const currentDay = activeJourney?.days.find(d => d.id === focusedDayId);
         
         const content = document.createElement('div');
-        content.className = 'p-2 min-w-[180px]';
+        content.className = 'p-2 min-w-[200px]';
         
         const h4 = document.createElement('h4');
         h4.className = 'font-black text-slate-900 text-sm mb-1';
@@ -281,20 +281,29 @@ class JourneyMap {
         p.className = 'text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-3';
         p.textContent = place.types?.[0]?.replace(/_/g, ' ') || 'Point of Interest';
         
-        const btn = document.createElement('button');
-        btn.id = 'btn-poi-add';
-        btn.className = 'w-full bg-blue-600 text-white py-2 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-colors shadow-md shadow-blue-200';
-        btn.textContent = `Add to ${currentDay ? currentDay.city.name : 'Trip'}`;
+        const btnRow = document.createElement('div');
+        btnRow.className = 'flex gap-2';
+        
+        const btnActivity = document.createElement('button');
+        btnActivity.className = 'flex-1 bg-blue-600 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-colors shadow-md';
+        btnActivity.textContent = '📍 Activity';
+        
+        const btnHotel = document.createElement('button');
+        btnHotel.className = 'flex-1 bg-amber-500 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-colors shadow-md';
+        btnHotel.textContent = '🏨 Hotel';
+        
+        btnRow.appendChild(btnActivity);
+        btnRow.appendChild(btnHotel);
         
         content.appendChild(h4);
         content.appendChild(p);
-        content.appendChild(btn);
+        content.appendChild(btnRow);
 
         this.infoWindow.setContent(content);
         this.infoWindow.setPosition(event.latLng);
         this.infoWindow.open(this.mapInstance);
 
-        btn.onclick = () => {
+        btnActivity.onclick = () => {
           if (!focusedDayId) {
             alert("Please select a day in your timeline first!");
             return;
@@ -308,11 +317,32 @@ class JourneyMap {
           
           this.infoWindow.close();
           
-          // Visual feedback on the card
           const targetCard = document.querySelector(`[data-id="${focusedDayId}"]`);
           if (targetCard) {
             targetCard.classList.add('ring-4', 'ring-green-500/50');
             setTimeout(() => targetCard.classList.remove('ring-4', 'ring-green-500/50'), 1000);
+          }
+        };
+
+        btnHotel.onclick = () => {
+          if (!focusedDayId) {
+            alert("Please select a day in your timeline first!");
+            return;
+          }
+          
+          journeyState.setHotel(focusedDayId, {
+            name: place.name,
+            lat: event.latLng.lat(),
+            lng: event.latLng.lng(),
+            id: event.placeId
+          });
+          
+          this.infoWindow.close();
+          
+          const targetCard = document.querySelector(`[data-id="${focusedDayId}"]`);
+          if (targetCard) {
+            targetCard.classList.add('ring-4', 'ring-amber-500/50');
+            setTimeout(() => targetCard.classList.remove('ring-4', 'ring-amber-500/50'), 1000);
           }
         };
       }

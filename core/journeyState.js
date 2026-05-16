@@ -307,6 +307,38 @@ class JourneyState {
   }
 
   /**
+   * Remove a specific day by ID
+   */
+  removeDay(dayId) {
+    const journey = this.activeJourney;
+    if (!journey) return;
+
+    journey.days = journey.days.filter(d => d.id !== dayId);
+    if (this.focusedDayId === dayId) {
+      this.focusedDayId = journey.days.length > 0 ? journey.days[0].id : null;
+    }
+    journey.lastModified = Date.now();
+    this.save();
+    eventBus.emit('JOURNEY_LOADED', { journey });
+  }
+
+  /**
+   * Reassign a day's city without losing its picks/hotel/transit
+   */
+  reassignDay(dayId, newCity) {
+    const journey = this.activeJourney;
+    if (!journey) return;
+
+    const day = journey.days.find(d => d.id === dayId);
+    if (day) {
+      day.city = newCity;
+      journey.lastModified = Date.now();
+      this.save();
+      eventBus.emit('JOURNEY_LOADED', { journey });
+    }
+  }
+
+  /**
    * Reorder days manually
    */
   reorderDays({ oldIndex, newIndex }) {

@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3b82f6;
+  --color-secondary: #8b5cf6;
+}
+
+/* Tailwind v4 Class-based Dark Mode Support */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Global Smooth Theme Transition */
+html {
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-500;
+  height: 100dvh;
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  position: relative;
+}
+
+/* Custom Glow Effects for Dark Mode */
+.dark .text-glow {
+  text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.dark .box-glow {
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
+}
+
+/* Glassmorphism Refinements */
+.glass {
+  @apply backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border border-white/20 dark:border-slate-800/50;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Discovery Mode: Floating Horizontal Rail */
+.timeline-discovery-mode {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 240px !important;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.9), transparent) !important;
+  backdrop-filter: blur(8px);
+  z-index: 50;
+  display: flex !important;
+  flex-direction: row !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 20px !important;
+  gap: 16px !important;
+  scrollbar-width: none;
+}
+
+.timeline-discovery-mode::-webkit-scrollbar {
+  display: none;
+}
+
+.timeline-discovery-mode > div {
+  flex: 0 0 280px !important;
+  height: 180px !important;
+  margin: 0 !important;
+  transform: scale(0.9);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.timeline-discovery-mode > div:hover {
+  transform: scale(1);
+}
+
+/* Hide non-essential info in Discovery mode to save space */
+.timeline-discovery-mode .activity-list {
+  display: none !important;
+}
+
+.timeline-discovery-mode .timeline-card-header {
+  height: 100% !important;
+  border-bottom: none !important;
+}
+
+.timeline-discovery-mode .timeline-summary {
+  display: none !important;
+}

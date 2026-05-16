@@ -20,6 +20,7 @@ class ViewOrchestrator {
     this.timelineContainer = document.getElementById('timeline-container');
 
     eventBus.on('NAVIGATE_TO', (payload) => this.switchView(payload.view));
+    this.setupMobileInteractions();
   }
 
   switchView(viewName) {
@@ -31,13 +32,11 @@ class ViewOrchestrator {
     if (!this.canvasViews[canvasName]) return;
     this.activeCanvas = canvasName;
 
-    // 1. ALWAYS show the timeline sidebar (UI INVARIANT)
+    // 1. ALWAYS show containers (CSS handles layout)
     this.timelineContainer.classList.remove('hidden');
-
-    // 2. ALWAYS show the canvas area
     this.leftCanvasArea.classList.remove('hidden');
 
-    // 3. Hide all canvas children, then reveal the active one
+    // 2. Hide all canvas children, then reveal the active one
     Object.values(this.canvasViews).forEach(containerId => {
       const el = document.getElementById(containerId);
       if (el) el.classList.add('hidden');
@@ -46,26 +45,26 @@ class ViewOrchestrator {
     const activeEl = document.getElementById(this.canvasViews[canvasName]);
     if (activeEl) activeEl.classList.remove('hidden');
 
-    // 4. Discovery mode class for the timeline when map is active
+    // 3. Side-Bar Logic (Mobile Bottom Sheet vs Desktop Sidebar)
     if (canvasName === 'map') {
-      this.timelineContainer.classList.add('timeline-discovery-mode');
+      this.timelineContainer.classList.add('bottom-sheet');
     } else {
-      this.timelineContainer.classList.remove('timeline-discovery-mode');
+      this.timelineContainer.classList.remove('bottom-sheet', 'expanded');
     }
 
-    // 5. Mobile: toggle which panel is primary (canvas vs timeline)
-    if (isMobile) {
-      if (viewName === 'plan') {
-        // On mobile, "Plan" means show the timeline full-screen
-        this.leftCanvasArea.classList.add('hidden');
-        this.timelineContainer.classList.remove('timeline-discovery-mode');
-      }
-      // Otherwise: canvas is visible, timeline hides on mobile
-      // (they can't both fit — but we keep the invariant on desktop)
-    }
-
-    // 6. Notify all components
+    // 4. Notify all components
     eventBus.emit('VIEW_CHANGED', { view: canvasName, navView: viewName, isMobile });
+  }
+
+  setupMobileInteractions() {
+    // Toggle bottom sheet on mobile when in map view
+    this.timelineContainer.addEventListener('click', (e) => {
+      if (window.innerWidth < 768 && this.timelineContainer.classList.contains('bottom-sheet')) {
+        // If clicking a button, input, or specifically the 'view map' button inside card, don't toggle sheet
+        if (e.target.closest('button, input, [role="button"]')) return;
+        this.timelineContainer.classList.toggle('expanded');
+      }
+    });
   }
 }
 

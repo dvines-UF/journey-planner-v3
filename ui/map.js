@@ -155,13 +155,11 @@ class JourneyMap {
   async initMap(payload) {
     const journey = payload.journey;
     
-    // If no key is provided, stay in the graceful fallback state.
     if (!GOOGLE_MAPS_API_KEY) {
         this.renderFallback(journey);
         return;
     }
 
-    // Prevent multiple initializations, but always sync theme
     if (this.mapInstance) {
       this.plotJourney(journey);
       this.updateMapStyle();
@@ -171,15 +169,14 @@ class JourneyMap {
     try {
       await loadGoogleMapsScript();
 
-      const { Map } = window.google.maps;
+      const { Map, InfoWindow, places } = window.google.maps;
       this.AdvancedMarkerElement = window.google.maps.marker?.AdvancedMarkerElement;
 
       const activeTheme = localStorage.getItem('journey_theme') || 'light';
       
-      // Default to the first day's city if available
       const initialCenter = journey.days.length > 0 
         ? { lat: journey.days[0].city.lat, lng: journey.days[0].city.lng } 
-        : { lat: 41.9028, lng: 12.4964 }; // Rome default
+        : { lat: 41.9028, lng: 12.4964 };
 
       this.mapInstance = new Map(this.container, {
         center: initialCenter,
@@ -190,9 +187,8 @@ class JourneyMap {
         styles: activeTheme === 'dark' ? this.getDarkStyles() : []
       });
 
-      // Intercept POI clicks to add custom attractions
-      this.infoWindow = new window.google.maps.InfoWindow();
-      this.placesService = new window.google.maps.places.PlacesService(this.mapInstance);
+      this.infoWindow = new InfoWindow();
+      this.placesService = new places.PlacesService(this.mapInstance);
 
       this.mapInstance.addListener('click', (e) => {
         if (e.placeId) {
@@ -201,9 +197,9 @@ class JourneyMap {
         }
       });
 
+      this.renderSearchBar();
       this.plotJourney(journey);
 
-      // Force a resize check after init to prevent 'sliver' bugs on iOS
       setTimeout(() => {
           window.google.maps.event.trigger(this.mapInstance, 'resize');
           if (this.markers.length > 0) {
@@ -257,6 +253,41 @@ class JourneyMap {
     }
   }
 
+  renderSearchBar() {
+    if (document.getElementById('map-search-bar')) return;
+
+    const input = document.createElement('input');
+    input.id = 'map-search-bar';
+    input.type = 'text';
+    input.placeholder = 'Search for attractions, hotels, restaurants...';
+    input.className = 'absolute top-6 left-1/2 -translate-x-1/2 w-[85%] max-w-md z-[60] bg-white dark:bg-slate-900 px-6 py-4 rounded-2xl shadow-2xl border-2 border-transparent focus:border-blue-500 outline-none text-sm font-bold dark:text-white transition-all';
+    
+    this.container.appendChild(input);
+
+    const autocomplete = new window.google.maps.places.Autocomplete(input, {
+      fields: ['geometry', 'name', 'types', 'formatted_address', 'place_id'],
+      types: ['establishment', 'geocode']
+    });
+
+    autocomplete.bindTo('bounds', this.mapInstance);
+
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (!place.geometry || !place.geometry.location) return;
+
+      this.mapInstance.setCenter(place.geometry.location);
+      this.mapInstance.setZoom(16);
+
+      this.showPOIChoiceModal(place, {
+        latLng: place.geometry.location,
+        placeId: place.place_id
+      });
+      
+      input.value = '';
+      input.blur();
+    });
+  }
+
   panTo(payload) {
     if (!this.mapInstance || !payload.lat) return;
     this.mapInstance.panTo({ lat: payload.lat, lng: payload.lng });
@@ -264,89 +295,84 @@ class JourneyMap {
   }
 
   handlePoiClick(event) {
-    this.placesService.getDetails({ placeId: event.placeId, fields: ['name', 'types', 'formatted_address', 'rating'] }, (place, status) => {
+    this.placesService.getDetails({ 
+      placeId: event.placeId, 
+      fields: ['name', 'types', 'formatted_address', 'geometry', 'place_id'] 
+    }, (place, status) => {
       if (status === 'OK' && place) {
-        const focusedDayId = journeyState.focusedDayId;
-        const activeJourney = journeyState.activeJourney;
-        const currentDay = activeJourney?.days.find(d => d.id === focusedDayId);
-        
-        const content = document.createElement('div');
-        content.className = 'p-2 min-w-[200px]';
-        
-        const h4 = document.createElement('h4');
-        h4.className = 'font-black text-slate-900 text-sm mb-1';
-        h4.textContent = place.name;
-        
-        const p = document.createElement('p');
-        p.className = 'text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-3';
-        p.textContent = place.types?.[0]?.replace(/_/g, ' ') || 'Point of Interest';
-        
-        const btnRow = document.createElement('div');
-        btnRow.className = 'flex gap-2';
-        
-        const btnActivity = document.createElement('button');
-        btnActivity.className = 'flex-1 bg-blue-600 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-colors shadow-md';
-        btnActivity.textContent = '📍 Activity';
-        
-        const btnHotel = document.createElement('button');
-        btnHotel.className = 'flex-1 bg-amber-500 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-colors shadow-md';
-        btnHotel.textContent = '🏨 Hotel';
-        
-        btnRow.appendChild(btnActivity);
-        btnRow.appendChild(btnHotel);
-        
-        content.appendChild(h4);
-        content.appendChild(p);
-        content.appendChild(btnRow);
-
-        this.infoWindow.setContent(content);
-        this.infoWindow.setPosition(event.latLng);
-        this.infoWindow.open(this.mapInstance);
-
-        btnActivity.onclick = () => {
-          if (!focusedDayId) {
-            alert("Please select a day in your timeline first!");
-            return;
-          }
-          
-          journeyState.addPick(focusedDayId, {
-            name: place.name,
-            type: place.types?.[0] || 'attraction',
-            notes: place.formatted_address
-          });
-          
-          this.infoWindow.close();
-          
-          const targetCard = document.querySelector(`[data-id="${focusedDayId}"]`);
-          if (targetCard) {
-            targetCard.classList.add('ring-4', 'ring-green-500/50');
-            setTimeout(() => targetCard.classList.remove('ring-4', 'ring-green-500/50'), 1000);
-          }
-        };
-
-        btnHotel.onclick = () => {
-          if (!focusedDayId) {
-            alert("Please select a day in your timeline first!");
-            return;
-          }
-          
-          journeyState.setHotel(focusedDayId, {
-            name: place.name,
-            lat: event.latLng.lat(),
-            lng: event.latLng.lng(),
-            id: event.placeId
-          });
-          
-          this.infoWindow.close();
-          
-          const targetCard = document.querySelector(`[data-id="${focusedDayId}"]`);
-          if (targetCard) {
-            targetCard.classList.add('ring-4', 'ring-amber-500/50');
-            setTimeout(() => targetCard.classList.remove('ring-4', 'ring-amber-500/50'), 1000);
-          }
-        };
+        this.showPOIChoiceModal(place, event);
       }
     });
+  }
+
+  showPOIChoiceModal(place, event) {
+    const focusedDayId = journeyState.focusedDayId;
+    if (!focusedDayId) {
+      alert("Please select a day in your timeline first!");
+      return;
+    }
+
+    const content = document.createElement('div');
+    content.className = 'p-2 min-w-[200px]';
+    
+    const h4 = document.createElement('h4');
+    h4.className = 'font-black text-slate-900 text-sm mb-1';
+    h4.textContent = place.name;
+    
+    const p = document.createElement('p');
+    p.className = 'text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-3';
+    p.textContent = place.types?.[0]?.replace(/_/g, ' ') || 'Point of Interest';
+    
+    const btnRow = document.createElement('div');
+    btnRow.className = 'flex gap-2';
+    
+    const btnActivity = document.createElement('button');
+    btnActivity.className = 'flex-1 bg-blue-600 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-colors shadow-md';
+    btnActivity.textContent = '📍 Activity';
+    
+    const btnHotel = document.createElement('button');
+    btnHotel.className = 'flex-1 bg-amber-500 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-colors shadow-md';
+    btnHotel.textContent = '🏨 Hotel';
+    
+    btnRow.appendChild(btnActivity);
+    btnRow.appendChild(btnHotel);
+    
+    content.appendChild(h4);
+    content.appendChild(p);
+    content.appendChild(btnRow);
+
+    this.infoWindow.setContent(content);
+    this.infoWindow.setPosition(event.latLng);
+    this.infoWindow.open(this.mapInstance);
+
+    btnActivity.onclick = () => {
+      journeyState.addPick(focusedDayId, {
+        name: place.name,
+        type: place.types?.[0] || 'attraction',
+        notes: place.formatted_address
+      });
+      this.infoWindow.close();
+      this.showSuccessFeedback(focusedDayId, 'ring-green-500/50');
+    };
+
+    btnHotel.onclick = () => {
+      journeyState.setHotel(focusedDayId, {
+        name: place.name,
+        lat: event.latLng.lat(),
+        lng: event.latLng.lng(),
+        id: place.place_id
+      });
+      this.infoWindow.close();
+      this.showSuccessFeedback(focusedDayId, 'ring-amber-500/50');
+    };
+  }
+
+  showSuccessFeedback(dayId, ringClass) {
+    const targetCard = document.querySelector(`[data-id="${dayId}"]`);
+    if (targetCard) {
+      targetCard.classList.add('ring-4', ringClass);
+      setTimeout(() => targetCard.classList.remove('ring-4', ringClass), 1000);
+    }
   }
 
   renderFallback(journey, errorText = null) {

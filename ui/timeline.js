@@ -30,20 +30,36 @@ class Timeline {
     const journey = payload.journey;
     this.container.innerHTML = ''; 
 
-    if (!journey || !journey.days || journey.days.length === 0) {
-      this.renderEmptyState();
+    if (!journey) {
+      // Truly no journey selected
       return;
     }
 
     const fragment = document.createDocumentFragment();
 
-    // 1. Render Summary Header
+    // 1. ALWAYS Render Summary Header (even if empty)
     fragment.appendChild(TimelineSummary.render(journey));
 
-    // 2. Setup Scroll-Spy
+    // 2. If no days, render a smaller empty state prompt
+    if (!journey.days || journey.days.length === 0) {
+      const emptyPrompt = document.createElement('div');
+      emptyPrompt.className = 'mt-10 p-8 text-center text-slate-500 animate-fade-in';
+      emptyPrompt.innerHTML = `
+        <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white dark:border-slate-700 shadow-md">
+          <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        </div>
+        <p class="text-sm font-bold text-slate-600 dark:text-slate-400">No days planned yet</p>
+        <p class="text-xs text-slate-400 mt-1">Pick dates on the calendar to build your timeline.</p>
+      `;
+      fragment.appendChild(emptyPrompt);
+      this.container.appendChild(fragment);
+      return;
+    }
+
+    // 3. Setup Scroll-Spy
     const observer = this.createScrollObserver();
 
-    // 3. Render Day Cards
+    // 4. Render Day Cards
     journey.days.forEach((day, index) => {
       const card = safeRender(() => TimelineCard.render(day, index, {
         onDragStart: this.handleDragStart.bind(this),

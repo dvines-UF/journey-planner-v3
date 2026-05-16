@@ -135,6 +135,59 @@ export class TimelineCard {
       };
     }
     contentArea.appendChild(hotelWrapper);
+    
+    // Logistics (Flights/Trains)
+    const logisticsWrap = document.createElement('div');
+    logisticsWrap.className = 'space-y-2';
+    
+    if (day.logistics && day.logistics.length > 0) {
+      day.logistics.forEach(log => {
+        const logEl = document.createElement('div');
+        logEl.className = 'bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between group/log transition-all hover:bg-slate-100 dark:hover:bg-slate-800';
+        
+        const typeIcon = log.type === 'flight' ? '✈️' : (log.type === 'train' ? '🚆' : '🚗');
+        
+        logEl.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="text-lg">${typeIcon}</div>
+            <div class="flex flex-col">
+              <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">${log.type}</span>
+              <span class="text-xs font-bold text-slate-900 dark:text-white">${log.details || 'Travel Details'}</span>
+            </div>
+          </div>
+          <button class="text-slate-300 hover:text-red-500 opacity-0 group-hover/log:opacity-100 transition-all p-1" title="Remove">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        `;
+        
+        const deleteBtn = logEl.querySelector('button');
+        deleteBtn.onclick = (e) => {
+          e.stopPropagation();
+          journeyState.removeLogistics(day.id, log.id);
+        };
+        
+        logisticsWrap.appendChild(logEl);
+      });
+    }
+
+    const addLogSlot = document.createElement('div');
+    addLogSlot.className = 'border border-dashed border-slate-200 dark:border-slate-800 p-2.5 rounded-xl flex items-center gap-3 group/addlog cursor-pointer hover:border-blue-300 dark:hover:border-blue-900 transition-all';
+    addLogSlot.innerHTML = `
+      <div class="w-7 h-7 bg-slate-50 dark:bg-slate-800 text-slate-300 dark:text-slate-600 rounded-lg flex items-center justify-center group-hover/addlog:bg-blue-50 dark:group-hover/addlog:bg-blue-950 group-hover/addlog:text-blue-500 transition-colors shrink-0">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+      </div>
+      <span class="text-[10px] font-bold text-slate-400 group-hover/addlog:text-blue-600 transition-colors">Add Flight / Train</span>
+    `;
+    addLogSlot.onclick = (e) => {
+      e.stopPropagation();
+      const details = prompt("Enter travel details (e.g., Flight BA202 to London):");
+      if (details) {
+        const type = details.toLowerCase().includes('flight') ? 'flight' : (details.toLowerCase().includes('train') ? 'train' : 'car');
+        journeyState.addLogistics(day.id, { type, details });
+      }
+    };
+    logisticsWrap.appendChild(addLogSlot);
+    contentArea.appendChild(logisticsWrap);
 
     // 2. Transit Connection (If applicable)
     if (day.transit && day.transit.length > 0) {

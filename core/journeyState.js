@@ -149,15 +149,14 @@ class JourneyState {
   deleteJourney(id) {
     this.journeys = this.journeys.filter(j => j.id !== id);
     if (this.activeJourneyId === id) {
-      this.activeJourneyId = this.journeys.length > 0 ? this.journeys[0].id : null;
-      this.focusedDayId = null; // Fix Ghost State
+      this.activeJourneyId = null;
+      this.focusedDayId = null;
     }
-    this.save();
-    if (this.activeJourneyId) {
-      this.setActiveJourney(this.activeJourneyId);
-    } else {
-      eventBus.emit('JOURNEY_LOADED', { journey: null });
-    }
+    localStorage.setItem(this.storageKey, JSON.stringify({
+      journeys: this.journeys,
+      activeJourneyId: this.activeJourneyId
+    }));
+    eventBus.emit('JOURNEYS_UPDATED', { journeys: this.journeys });
   }
 
   /**
@@ -355,6 +354,32 @@ class JourneyState {
 
   focusCity(lat, lng) {
     eventBus.emit('CITY_FOCUSED', { lat, lng });
+  }
+
+  addLogistics(dayId, entry) {
+    const journey = this.activeJourney;
+    if (!journey) return;
+    const day = journey.days.find(d => d.id === dayId);
+    if (!day) return;
+    if (!day.logistics) day.logistics = [];
+    day.logistics.push({
+      id: 'log-' + Date.now(),
+      ...entry
+    });
+    journey.lastModified = Date.now();
+    this.save();
+    eventBus.emit('JOURNEY_LOADED', { journey });
+  }
+
+  removeLogistics(dayId, logId) {
+    const journey = this.activeJourney;
+    if (!journey) return;
+    const day = journey.days.find(d => d.id === dayId);
+    if (!day || !day.logistics) return;
+    day.logistics = day.logistics.filter(l => l.id !== logId);
+    journey.lastModified = Date.now();
+    this.save();
+    eventBus.emit('JOURNEY_LOADED', { journey });
   }
 
   /**

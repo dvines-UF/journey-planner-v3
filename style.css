@@ -76,13 +76,48 @@ main {
   animation: scaleUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* Discovery Mode: Subtle visual indicator, sidebar stays in place */
-.timeline-discovery-mode {
-  border-right-color: rgba(59, 130, 246, 0.3) !important;
-}
+/* Mobile Bottom Sheet Styles */
+@media (max-width: 767px) {
+  #timeline-container.bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70vh;
+    width: 100%;
+    z-index: 100;
+    transform: translateY(calc(70vh - 60px));
+    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    border-radius: 24px 24px 0 0;
+    border-right: none;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+    @apply bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl;
+  }
 
-@media (prefers-color-scheme: dark) {
-  .timeline-discovery-mode {
-    border-right-color: rgba(59, 130, 246, 0.2) !important;
+  .dark #timeline-container.bottom-sheet {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  #timeline-container.bottom-sheet.expanded {
+    transform: translateY(0);
+  }
+
+  /* Bottom Sheet Handle */
+  #timeline-container.bottom-sheet::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 5px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+  
+  .dark #timeline-container.bottom-sheet::before {
+    background: rgba(255, 255, 255, 0.2);
   }
 }

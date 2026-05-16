@@ -9,17 +9,24 @@ export class TimelineSummary {
    * @param {Object} journey - The active journey data
    */
   static render(journey) {
-    const daysDuration = calculateDaysDuration(journey.days[0].date, journey.days[journey.days.length - 1].date);
-    const totalCities = new Set(journey.days.map(d => d.city.name)).size;
+    const hasDays = journey.days && journey.days.length > 0;
+    const daysDuration = hasDays ? calculateDaysDuration(journey.days[0].date, journey.days[journey.days.length - 1].date) : 0;
+    const totalCities = hasDays ? new Set(journey.days.map(d => d.city.name)).size : 0;
     
-    const startDate = parseDate(journey.days[0].date);
-    const daysUntil = Math.ceil((startDate.getTime() - Date.now()) / (1000 * 3600 * 24));
-    let countdownText = `${daysUntil} days until departure`;
-    if (daysUntil === 0) countdownText = "Your adventure starts today!";
-    if (daysUntil < 0) countdownText = `Journey ended ${Math.abs(daysUntil)} days ago`;
+    let countdownText = "Pick your dates on the calendar to start";
+    let progressWidth = 5;
+
+    if (hasDays) {
+      const startDate = parseDate(journey.days[0].date);
+      const daysUntil = Math.ceil((startDate.getTime() - Date.now()) / (1000 * 3600 * 24));
+      countdownText = `${daysUntil} days until departure`;
+      if (daysUntil === 0) countdownText = "Your adventure starts today!";
+      if (daysUntil < 0) countdownText = `Journey ended ${Math.abs(daysUntil)} days ago`;
+      progressWidth = Math.max(5, Math.min(100, 100 - (daysUntil * 2)));
+    }
 
     const overview = document.createElement('div');
-    overview.className = 'mb-8 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden animate-fade-in';
+    overview.className = 'timeline-summary-card mb-8 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden animate-fade-in';
     overview.innerHTML = `
       <div class="absolute -right-10 -top-10 w-40 h-40 bg-blue-500 rounded-full blur-3xl opacity-20"></div>
       <div class="absolute -left-10 -bottom-10 w-32 h-32 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
@@ -37,7 +44,7 @@ export class TimelineSummary {
           </div>
         </div>
         <div class="w-full bg-slate-700/50 rounded-full h-1.5 mb-2 overflow-hidden backdrop-blur-sm">
-          <div class="bg-blue-400 h-1.5 rounded-full relative" style="width: ${Math.max(5, Math.min(100, 100 - (daysUntil * 2)))}%">
+          <div class="bg-blue-400 h-1.5 rounded-full relative" style="width: ${progressWidth}%">
             <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
           </div>
         </div>
